@@ -73,14 +73,20 @@ export function formatPositions(positions: Position[]): string {
     return '💼 No open positions';
   }
 
-  let text = `💼 Open Positions (${positions.length})\n\n`;
+  let text = `💰 *Open Positions* (${positions.length})\n`;
 
-  positions.forEach((pos, idx) => {
-    text += `${idx + 1}. *${pos.market_title}*\n`;
-    text += `   Direction: ${pos.direction.toUpperCase()}\n`;
-    text += `   Entry: ${(pos.price * 100).toFixed(1)}c\n`;
-    text += `   Size: $${pos.size?.toFixed(2) ?? 'N/A'}\n`;
-    text += `   Time: ${new Date(pos.entry_time).toLocaleString()}\n\n`;
+  const totalSize = positions.reduce((sum, p) => sum + (p.size ?? 0), 0);
+  text += `*Total Exposure:* $${totalSize.toFixed(2)}\n\n`;
+
+  [...positions].reverse().forEach((pos) => {
+    const dir = pos.direction.toUpperCase();
+    const arrow = dir === 'UP' ? '⬆️' : '⬇️';
+    const entryCents = (pos.price * 100).toFixed(1);
+    const size = pos.size?.toFixed(2) ?? 'N/A';
+    const cost = pos.size ? (pos.size * pos.price).toFixed(2) : 'N/A';
+
+    text += `${arrow} *${dir}* — ${pos.market_title}\n`;
+    text += `*Entry:* ${entryCents}c | *Size:* $${size} | *Cost:* $${cost}\n\n`;
   });
 
   return text;
@@ -102,7 +108,7 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
   text += `*Total P&L:* $${totalPnL.toFixed(2)}\n\n`;
 
   text += `*Recent 10:*\n\n`;
-  orders.slice(0, 10).forEach((order) => {
+  [...orders].reverse().slice(0, 10).forEach((order) => {
     const direction = order.side === 'buy' ? 'Up' : 'Down';
     const boldPart = `*Bitcoin ${direction}*`;
     const restPart = order.market_title.replace(/Bitcoin/i, '').trim();
