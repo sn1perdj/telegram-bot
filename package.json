@@ -1,17 +1,17 @@
 {
   "name": "polymarket-telegram-bot",
   "version": "1.0.0",
-  "description": "Telegram bot for monitoring Polymarket trading bot",
-  "license": "ISC",
-  "author": "",
-  "type": "commonjs",
+  "description": "Telegram bot for monitoring and controlling a Polymarket trading bot",
   "main": "dist/index.js",
+  "type": "commonjs",
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev src/index.ts",
     "start": "node dist/index.js",
     "watch": "tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "tsc --noEmit",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "rimraf": "^5.0.0",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"

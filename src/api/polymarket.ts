@@ -67,58 +67,65 @@ export interface DashboardData {
   logs: string[];
 }
 
+interface BotControlResult {
+  status: string;
+  running: boolean;
+}
+
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class PolymarketAPI {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:3000') {
+  constructor(baseURL: string) {
     this.client = axios.create({
       baseURL,
-      timeout: 10000,
+      timeout: DEFAULT_TIMEOUT_MS,
     });
   }
 
   async getStatus(): Promise<BotStatus> {
-    const response = await this.client.get('/api/status');
-    return response.data;
+    const { data } = await this.client.get('/api/status');
+    return data;
   }
 
   async getMarket(): Promise<MarketData> {
-    const response = await this.client.get('/api/market');
-    return response.data;
+    const { data } = await this.client.get('/api/market');
+    return data;
   }
 
   async getTrades(): Promise<{ trades: Trade[] }> {
-    const response = await this.client.get('/api/trades');
-    return response.data;
+    const { data } = await this.client.get('/api/trades');
+    return data;
   }
 
   async getPositions(): Promise<{ positions: Position[] }> {
-    const response = await this.client.get('/api/positions');
-    return response.data;
+    const { data } = await this.client.get('/api/positions');
+    return data;
   }
 
   async getClosedOrders(): Promise<{ closed_orders: ClosedOrder[] }> {
-    const response = await this.client.get('/api/closed_orders');
-    return response.data;
+    const { data } = await this.client.get('/api/closed_orders');
+    return data;
   }
 
   async getDashboard(): Promise<DashboardData> {
-    const response = await this.client.get('/api/dashboard');
-    return response.data;
+    const { data } = await this.client.get('/api/dashboard');
+    return data;
   }
 
   async getLogs(): Promise<{ logs: string[] }> {
-    const response = await this.client.get('/api/logs');
-    return response.data;
+    const { data } = await this.client.get('/api/logs');
+    return data;
   }
 
-  async startBot(): Promise<{ status: string; running: boolean }> {
-    const response = await this.client.post('/api/bot/start');
-    return response.data;
+  async startBot(): Promise<BotControlResult> {
+    const { data } = await this.client.post('/api/bot/start');
+    return data;
   }
 
-  async stopBot(): Promise<{ status: string; running: boolean }> {
-    const response = await this.client.post('/api/bot/stop');
-    return response.data;
+  async stopBot(): Promise<BotControlResult> {
+    const { data } = await this.client.post('/api/bot/stop');
+    return data;
   }
 }

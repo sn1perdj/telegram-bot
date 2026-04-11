@@ -1,31 +1,19 @@
 import { TelegramBot } from './bot';
-import * as dotenv from 'dotenv';
+import { config } from './config';
+import { logger } from './services/logger';
 
-dotenv.config();
+const bot = new TelegramBot(config.telegramBotToken, config.polymarketApiUrl);
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const POLYMARKET_API_URL = process.env.POLYMARKET_API_URL || 'http://localhost:3000';
-
-if (!TELEGRAM_BOT_TOKEN) {
-  console.error('Error: TELEGRAM_BOT_TOKEN is required!');
-  console.error('Please set it in your .env file');
-  process.exit(1);
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info(`Received ${signal}, shutting down...`);
+  await bot.stop();
+  process.exit(0);
 }
 
-const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, POLYMARKET_API_URL);
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\nShutting down...');
-  await bot.stop();
-  process.exit(0);
+bot.start().catch((error) => {
+  logger.error('Failed to start bot:', error);
+  process.exit(1);
 });
-
-process.on('SIGTERM', async () => {
-  console.log('\nShutting down...');
-  await bot.stop();
-  process.exit(0);
-});
-
-// Start the bot
-bot.start().catch(console.error);
