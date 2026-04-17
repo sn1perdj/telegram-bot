@@ -11,7 +11,6 @@ import {
 import {
   formatStatus,
   formatMarket,
-  formatTrades,
   formatPositions,
   formatClosedOrders,
   formatDashboard,
@@ -41,15 +40,33 @@ const CALLBACKS: Record<string, CallbackConfig> = {
     successMessage: 'Market data updated!',
     errorMessage: 'Error fetching market data',
   },
-  trades: {
-    fetch: (api) => api.getTrades(),
-    format: (data) => formatTrades((data as { trades: Parameters<typeof formatTrades>[0] }).trades),
-    keyboard: () => detailKeyboard('trades'),
-    successMessage: 'Trades updated!',
-    errorMessage: 'Error fetching trades',
-  },
   positions: {
-    fetch: (api) => api.getPositions(),
+    fetch: async (api) => {
+      const [positionsData, marketData] = await Promise.all([
+        api.getPositions(),
+        api.getMarket(),
+      ]);
+
+      const positions = positionsData.positions.map(pos => {
+        const currentPrice = pos.direction.toUpperCase() === 'UP'
+          ? marketData.yes_price
+          : marketData.no_price;
+
+        const qty = pos.qty ?? (pos.size / pos.price);
+        const pnl = (currentPrice - pos.price) * qty;
+        const pnlPercent = ((currentPrice - pos.price) / pos.price) * 100;
+
+        return {
+          ...pos,
+          qty,
+          current_price: currentPrice,
+          pnl,
+          pnl_percent: pnlPercent,
+        };
+      });
+
+      return { positions };
+    },
     format: (data) => formatPositions((data as { positions: Parameters<typeof formatPositions>[0] }).positions),
     keyboard: () => detailKeyboard('positions'),
     successMessage: 'Positions updated!',

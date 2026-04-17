@@ -8,10 +8,9 @@ export function dashboardKeyboard(): InlineKeyboard {
     .text('📉 History', 'history')
     .text('📈 Market', 'market')
     .row()
-    .text('💸 Trades', 'trades')
     .text('📋 Status', 'status')
-    .row()
     .text('🤖 Bot Control', 'bot')
+    .row()
     .text('🔔 Notify', 'notify');
 }
 
@@ -25,9 +24,9 @@ export function navigationKeyboard(currentAction: string): InlineKeyboard {
   if (currentAction !== 'dashboard') {
     keyboard.text('📊 Dashboard', 'dashboard');
   } else {
-    keyboard.text('🔄 Refresh', 'dashboard');
-    keyboard.text('💰 Positions', 'positions');
-    keyboard.row()
+    keyboard.text('🔄 Refresh', 'dashboard')
+      .text('💰 Positions', 'positions')
+      .row()
       .text('📉 History', 'history')
       .text('📈 Market', 'market');
   }

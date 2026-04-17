@@ -41,6 +41,11 @@ export interface Position {
   size: number;
   direction: string;
   entry_time: string;
+  qty?: number;
+  sl?: number;
+  current_price?: number;
+  pnl?: number;
+  pnl_percent?: number;
 }
 
 export interface ClosedOrder {

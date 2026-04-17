@@ -11,7 +11,6 @@ import {
 import {
   formatStatus,
   formatMarket,
-  formatTrades,
   formatPositions,
   formatClosedOrders,
   formatDashboard,
@@ -33,8 +32,33 @@ const COMMANDS: Record<string, CommandConfig> = {
     errorMessage: '❌ Error fetching dashboard. Is the Polymarket bot running on port 3000?',
   },
   positions: {
-    fetch: (api) => api.getPositions(),
-    format: (data) => formatPositions((data as { positions: typeof formatPositions extends (p: infer P) => string ? P : never }).positions),
+    fetch: async (api) => {
+      const [positionsData, marketData] = await Promise.all([
+        api.getPositions(),
+        api.getMarket(),
+      ]);
+
+      const positions = positionsData.positions.map(pos => {
+        const currentPrice = pos.direction.toUpperCase() === 'UP'
+          ? marketData.yes_price
+          : marketData.no_price;
+
+        const qty = pos.qty ?? (pos.size / pos.price);
+        const pnl = (currentPrice - pos.price) * qty;
+        const pnlPercent = ((currentPrice - pos.price) / pos.price) * 100;
+
+        return {
+          ...pos,
+          qty,
+          current_price: currentPrice,
+          pnl,
+          pnl_percent: pnlPercent,
+        };
+      });
+
+      return { positions };
+    },
+    format: (data) => formatPositions((data as { positions: Parameters<typeof formatPositions>[0] }).positions),
     keyboard: () => detailKeyboard('positions'),
     errorMessage: '❌ Error fetching positions.',
   },
@@ -49,12 +73,6 @@ const COMMANDS: Record<string, CommandConfig> = {
     format: (data) => formatMarket(data as Parameters<typeof formatMarket>[0]),
     keyboard: () => detailKeyboard('market'),
     errorMessage: '❌ Error fetching market data.',
-  },
-  trades: {
-    fetch: (api) => api.getTrades(),
-    format: (data) => formatTrades((data as { trades: Parameters<typeof formatTrades>[0] }).trades),
-    keyboard: () => detailKeyboard('trades'),
-    errorMessage: '❌ Error fetching trades.',
   },
   status: {
     fetch: (api) => api.getStatus(),
@@ -106,7 +124,6 @@ Welcome! I can help you monitor your Polymarket trading bot.
 /positions - Open positions
 /history - Closed orders
 /market - Market data
-/trades - Recent trades
 /status - Bot status
 /bot - Start/Stop bot
 /notify - Enable/Disable notifications
