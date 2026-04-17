@@ -133,45 +133,22 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
   text += `├ Total Qty: ${totalQty.toFixed(0)}\n`;
   text += `└ Total P&L: ${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)} ${totalPnL >= 0 ? '🟢' : '🔴'}\n\n`;
 
-  text += `*Recent Trades Table:*\n`;
-  text += '`' + '━'.repeat(58) + '`\n';
-  text += '` Market                 Side  Entry  Exit   Qty    Amount   P&L   `\n';
-  text += '`' + '━'.repeat(58) + '`\n';
+  text += `*Recent 10:*\n\n`;
 
   [...orders].reverse().slice(0, 10).forEach((order) => {
     const direction = order.side === 'buy' ? 'Up' : 'Down';
-    const sideEmoji = direction === 'Up' ? '🟢' : '🔴';
-    const sideStr = direction === 'Up' ? 'UP ' : 'DOWN';
-
-    const marketTitle = order.market_title.length > 18
-      ? order.market_title.substring(0, 17) + '…'
-      : order.market_title.padEnd(18);
-
-    const entryPrice = (order.buy_price * 100).toFixed(1).padStart(5);
-    const exitPrice = (order.sell_price * 100).toFixed(1).padStart(5);
-    const qty = order.qty.toFixed(0).padStart(4);
-    const amount = `$${order.amount.toFixed(0)}`.padStart(6);
-    const pnl = `${order.final_pnl >= 0 ? '+' : ''}$${order.final_pnl.toFixed(1)}`.padStart(6);
-
-    text += '`' +
-      `${marketTitle} ${sideEmoji}${sideStr} ${entryPrice}c ${exitPrice}c ${qty} ${amount} ${pnl}` +
-      '`\n';
+    const date = new Date(order.timestamp * 1000).toLocaleString();
+    const res = order.resolution || 'Pending';
+    const resEmoji = res === 'YES' ? '✅' : res === 'NO' ? '❌' : '⏳';
+    
+    text += `*${order.market_title}*\n`;
+    text += `*Dir:* ${direction === 'Up' ? '⬆️' : '⬇️'} ${direction}\n`;
+    text += `*Entry:* ${(order.buy_price * 100).toFixed(1)}c | *Exit:* ${(order.sell_price * 100).toFixed(1)}c\n`;
+    text += `*Qty:* ${order.qty.toFixed(0)} | *Amount:* $${order.amount.toFixed(2)}\n`;
+    text += `*P&L:* $${order.final_pnl.toFixed(2)} | *Fees:* $${order.fees.toFixed(2)}\n`;
+    text += `*Res:* ${resEmoji} ${res}\n`;
+    text += `*Timestamp:* ${date}\n\n`;
   });
-
-  text += '`' + '━'.repeat(58) + '`\n\n';
-
-  text += `*Resolution Status:*\n`;
-  const resolved = orders.filter(o => o.resolution);
-  const pending = orders.filter(o => !o.resolution);
-
-  if (resolved.length > 0) {
-    const resolvedPnL = resolved.reduce((sum, o) => sum + o.final_pnl, 0);
-    text += `✅ Resolved: ${resolved.length} | P&L: ${resolvedPnL >= 0 ? '+' : ''}$${resolvedPnL.toFixed(2)}\n`;
-  }
-  if (pending.length > 0) {
-    const pendingPnL = pending.reduce((sum, o) => sum + o.final_pnl, 0);
-    text += `⏳ Pending: ${pending.length} | P&L: ${pendingPnL >= 0 ? '+' : ''}$${pendingPnL.toFixed(2)}\n`;
-  }
 
   return text;
 }

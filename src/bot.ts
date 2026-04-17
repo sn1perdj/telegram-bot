@@ -11,7 +11,6 @@ const BOT_COMMANDS = [
   { command: 'positions', description: 'Open positions' },
   { command: 'history', description: 'Closed orders' },
   { command: 'market', description: 'Market data' },
-  { command: 'trades', description: 'Recent trades' },
   { command: 'status', description: 'Bot status' },
   { command: 'bot', description: 'Start/Stop bot' },
   { command: 'notify', description: 'Enable/Disable notifications' },

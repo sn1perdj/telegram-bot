@@ -17,7 +17,6 @@ A Telegram bot for monitoring and controlling your Polymarket trading bot.
 | `/positions` | View all open positions |
 | `/history` | View closed orders with win rate & P&L stats |
 | `/market` | View BTC price and YES/NO token prices |
-| `/trades` | View recent trades with edge & probability |
 | `/status` | Check bot running status |
 | `/bot` | Start/Stop the trading bot |
 | `/notify` | Enable/Disable trade notifications |
