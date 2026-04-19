@@ -46,6 +46,12 @@ export interface Position {
   current_price?: number;
   pnl?: number;
   pnl_percent?: number;
+  filled_qty?: number;
+  fees_qty?: number;
+  sell_qty?: number;
+  current_market_price?: number;
+  highest_price?: number;
+  stop_loss?: number;
 }
 
 export interface ClosedOrder {
@@ -54,10 +60,12 @@ export interface ClosedOrder {
   market_url: string;
   side: string;
   buy_price: number;
-  qty: number;
+  filledQty: number;
+  feesQty: number;
+  sellQty: number;
   amount: number;
   sell_price: number;
-  fees: number;
+  feeUsdc: number;
   final_pnl: number;
   timestamp: number;
   resolution?: string;

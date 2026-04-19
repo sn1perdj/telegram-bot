@@ -16,8 +16,8 @@ Session: ${new Date(status.active_session).toLocaleString()}`;
 }
 
 export function formatMarket(market: MarketData): string {
-  const timeStr = market.time_remaining
-    ? `${Math.floor(market.time_remaining / 3600)}h ${Math.floor((market.time_remaining % 3600) / 60)}m`
+  const timeStr = market.time_remaining !== undefined
+    ? `${Math.floor(market.time_remaining / 60)}m ${Math.floor(market.time_remaining % 60)}s`
     : 'N/A';
 
   return `📊 *MARKET OVERVIEW*
@@ -52,9 +52,10 @@ export function formatPositions(positions: Position[]): string {
     const sideStr = dir === 'UP' ? 'UP' : 'DOWN';
 
     const entryPrice = (pos.price * 100).toFixed(1) + 'c';
-    const qty = (pos.qty ?? (pos.size / pos.price)).toFixed(2);
+    const netQty = pos.filled_qty ?? pos.sell_qty ?? (pos.size / pos.price);
+    const qty = (pos.qty ?? netQty).toFixed(2);
     const amount = `$${pos.size?.toFixed(2) ?? '0.00'}`;
-    const sl = pos.sl ? `${(pos.sl * 100).toFixed(1)}c` : 'N/A';
+    const sl = pos.sl ? `${(pos.sl * 100).toFixed(1)}c` : (pos.stop_loss ? `${(pos.stop_loss * 100).toFixed(1)}c` : 'N/A');
     const now = pos.current_price ? `${(pos.current_price * 100).toFixed(1)}c` : 'N/A';
 
     let pnlStr: string;
@@ -81,10 +82,10 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
   if (!orders || orders.length === 0) return '📝 *No closed orders found.*';
 
   // Calculate totals incorporating fees since backend final_pnl excludes them
-  const totalPnL = orders.reduce((sum, o) => sum + (o.final_pnl - (o.fees ?? 0)), 0);
+  const totalPnL = orders.reduce((sum, o) => sum + (o.final_pnl - (o.feeUsdc ?? 0) / 100), 0);
   const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
-  const totalQty = orders.reduce((sum, o) => sum + o.qty, 0);
-  const profitable = orders.filter((o) => (o.final_pnl - (o.fees ?? 0)) > 0).length;
+  const totalQty = orders.reduce((sum, o) => sum + (o.filledQty || o.sellQty || 0), 0);
+  const profitable = orders.filter((o) => (o.final_pnl - (o.feeUsdc ?? 0) / 100) > 0).length;
   const winRate = orders.length > 0 
     ? (profitable / orders.length * 100).toFixed(1) 
     : '0.0';
@@ -106,8 +107,11 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
     text += `*${order.market_title}*\n`;
     text += `*Dir:* ${direction === 'Up' ? '⬆️' : '⬇️'} ${direction}\n`;
     text += `*Entry:* ${(order.buy_price * 100).toFixed(1)}c | *Exit:* ${(order.sell_price * 100).toFixed(1)}c\n`;
-    text += `*Qty:* ${order.qty.toFixed(0)} | *Amount:* $${order.amount.toFixed(2)}\n`;
-    text += `*P&L:* $${order.final_pnl.toFixed(2)} | *Fees:* $${order.fees.toFixed(2)}\n`;
+    const orderQty = order.filledQty || order.sellQty || 0;
+    const feeInDollars = (order.feeUsdc ?? 0) / 100;
+    const netPnl = order.final_pnl - feeInDollars;
+    text += `*Qty:* ${orderQty.toFixed(2)} | *Amount:* $${order.amount.toFixed(2)}\n`;
+    text += `*P&L:* $${netPnl.toFixed(2)} | *Fees:* $${feeInDollars.toFixed(2)}\n`;
     text += `*Res:* ${resEmoji} ${res}\n`;
     text += `*Timestamp:* ${date}\n\n`;
   });
@@ -117,8 +121,8 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
 
 export function formatDashboard(data: DashboardData): string {
   // Incorporate fees into realized PNL since the backend's final_pnl does not include them
-  const totalPnL = data.closed_orders.reduce((sum, o) => sum + (o.final_pnl - (o.fees ?? 0)), 0);
-  const profitable = data.closed_orders.filter((o) => (o.final_pnl - (o.fees ?? 0)) > 0).length;
+  const totalPnL = data.closed_orders.reduce((sum, o) => sum + (o.final_pnl - (o.feeUsdc ?? 0) / 100), 0);
+  const profitable = data.closed_orders.filter((o) => (o.final_pnl - (o.feeUsdc ?? 0) / 100) > 0).length;
   const winRate = data.closed_orders.length > 0
     ? (profitable / data.closed_orders.length * 100).toFixed(1)
     : '0.0';
@@ -129,12 +133,13 @@ export function formatDashboard(data: DashboardData): string {
       openPnL += pos.pnl;
     } else {
       const currentPrice = pos.direction.toUpperCase() === 'UP' ? data.market.yes_price : data.market.no_price;
-      const qty = pos.qty ?? (pos.size / pos.price);
+      const netQty = pos.filled_qty ?? pos.sell_qty ?? (pos.size / pos.price);
+      const qty = pos.qty ?? netQty;
       openPnL += (currentPrice - pos.price) * qty;
     }
   });
 
-  const combinedPnL = totalPnL + openPnL;
+
 
   let text = `🚀 *Polymarket Bot Dashboard*\n\n`;
 
@@ -153,7 +158,7 @@ export function formatDashboard(data: DashboardData): string {
   if (data.positions.length > 0) {
     text += `*Unrealized P&L:* ${openPnL >= 0 ? '+' : ''}$${openPnL.toFixed(2)}\n`;
   }
-  text += `*Total Net P&L:* ${combinedPnL >= 0 ? '+' : ''}$${combinedPnL.toFixed(2)}\n\n`;
+  text += `\n`;
 
   if (data.trades.length > 0) {
     const latest = data.trades[0]!;

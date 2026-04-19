@@ -43,7 +43,8 @@ const COMMANDS: Record<string, CommandConfig> = {
           ? marketData.yes_price
           : marketData.no_price;
 
-        const qty = pos.qty ?? (pos.size / pos.price);
+        const netQty = pos.filled_qty ?? pos.sell_qty ?? (pos.size / pos.price);
+        const qty = pos.qty ?? netQty;
         const pnl = (currentPrice - pos.price) * qty;
         const pnlPercent = ((currentPrice - pos.price) / pos.price) * 100;
 
@@ -64,8 +65,8 @@ const COMMANDS: Record<string, CommandConfig> = {
   },
   history: {
     fetch: async (api) => {
-      const data = await api.getDashboard();
-      return { closed_orders: data.closed_orders };
+      const data = await api.getClosedOrders();
+      return data;
     },
     format: (data) => formatClosedOrders((data as { closed_orders: Parameters<typeof formatClosedOrders>[0] }).closed_orders),
     keyboard: () => detailKeyboard('history'),
