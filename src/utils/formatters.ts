@@ -40,103 +40,65 @@ ${market.market_title ?? 'Unknown Market'}
 
 export function formatPositions(positions: Position[]): string {
   if (positions.length === 0) {
-    return '💼 No open positions';
+    return '💼 *No open positions.*';
   }
 
-  const totalSize = positions.reduce((sum, p) => sum + (p.size ?? 0), 0);
-  const totalPnL = positions.reduce((sum, p) => sum + (p.pnl ?? 0), 0);
-  const avgEntry = positions.length > 0
-    ? positions.reduce((sum, p) => sum + p.price, 0) / positions.length
-    : 0;
-
-  let text = `📊 *POSITIONS SNAPSHOT*\n`;
+  let text = `📊 *ACTIVE POSITION*\n`;
   text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-  text += `*Portfolio Overview:*\n`;
-  text += `├ Total Positions: ${positions.length}\n`;
-  text += `├ Total Exposure: $${totalSize.toFixed(2)}\n`;
-  text += `├ Average Entry: ${(avgEntry * 100).toFixed(1)}c\n`;
-  text += `└ Total P&L: ${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)} ${totalPnL >= 0 ? '🟢' : '🔴'}\n\n`;
-
-  text += `*Positions Table:*\n`;
-  text += '`' + '━'.repeat(61) + '`\n';
-  text += '` Market                 Side  Price   Qty    Amount    SL     Now    P&L  `\n';
-  text += '`' + '━'.repeat(61) + '`\n';
-
-  [...positions].reverse().forEach((pos) => {
+  positions.forEach((pos) => {
     const dir = pos.direction.toUpperCase();
     const sideEmoji = dir === 'UP' ? '🟢' : '🔴';
-    const sideStr = dir === 'UP' ? 'UP ' : 'DOWN';
+    const sideStr = dir === 'UP' ? 'UP' : 'DOWN';
 
-    const marketTitle = pos.market_title.length > 18
-      ? pos.market_title.substring(0, 17) + '…'
-      : pos.market_title.padEnd(18);
-
-    const entryPrice = (pos.price * 100).toFixed(1).padStart(5);
-    const qty = (pos.qty ?? (pos.size / pos.price)).toFixed(0).padStart(4);
-    const amount = `$${pos.size?.toFixed(0) ?? '0'}`.padStart(6);
-    const sl = pos.sl ? `${(pos.sl * 100).toFixed(1)}c` : 'N/A'.padStart(5);
-    const now = pos.current_price ? `${(pos.current_price * 100).toFixed(1)}c` : 'N/A'.padStart(5);
+    const entryPrice = (pos.price * 100).toFixed(1) + 'c';
+    const qty = (pos.qty ?? (pos.size / pos.price)).toFixed(2);
+    const amount = `$${pos.size?.toFixed(2) ?? '0.00'}`;
+    const sl = pos.sl ? `${(pos.sl * 100).toFixed(1)}c` : 'N/A';
+    const now = pos.current_price ? `${(pos.current_price * 100).toFixed(1)}c` : 'N/A';
 
     let pnlStr: string;
+    let pnlEmoji = '';
     if (pos.pnl !== undefined) {
-      const pnlEmoji = pos.pnl >= 0 ? '+' : '';
-      pnlStr = `${pnlEmoji}$${pos.pnl.toFixed(1)}`;
+      pnlEmoji = pos.pnl >= 0 ? '🟢' : '🔴';
+      pnlStr = `${pos.pnl >= 0 ? '+' : ''}$${pos.pnl.toFixed(2)}`;
     } else {
       pnlStr = 'N/A';
     }
 
-    text += '`' +
-      `${marketTitle} ${sideEmoji}${sideStr} ${entryPrice}c ${qty} ${amount} ${sl.padStart(5)} ${now.padStart(5)} ${pnlStr.padStart(6)}` +
-      '`\n';
+    text += `*${pos.market_title}*\n`;
+    text += `├ 🎯 *Side:* ${sideEmoji} ${sideStr}\n`;
+    text += `├ 💰 *Amount:* ${amount} (${qty} shares)\n`;
+    text += `├ 📊 *Entry:* ${entryPrice} | *Now:* ${now}\n`;
+    text += `├ 🛑 *Stop Loss:* ${sl}\n`;
+    text += `└ 💵 *Unrealized P&L:* ${pnlStr} ${pnlEmoji}\n\n`;
   });
-
-  text += '`' + '━'.repeat(61) + '`\n\n';
-
-  text += `*Summary by Direction:*\n`;
-  const upPositions = positions.filter(p => p.direction.toUpperCase() === 'UP');
-  const downPositions = positions.filter(p => p.direction.toUpperCase() === 'DOWN');
-
-  if (upPositions.length > 0) {
-    const upSize = upPositions.reduce((sum, p) => sum + (p.size ?? 0), 0);
-    const upPnL = upPositions.reduce((sum, p) => sum + (p.pnl ?? 0), 0);
-    text += `⬆️ UP: ${upPositions.length} pos | $${upSize.toFixed(2)} | P&L: ${upPnL >= 0 ? '+' : ''}$${upPnL.toFixed(2)}\n`;
-  }
-
-  if (downPositions.length > 0) {
-    const downSize = downPositions.reduce((sum, p) => sum + (p.size ?? 0), 0);
-    const downPnL = downPositions.reduce((sum, p) => sum + (p.pnl ?? 0), 0);
-    text += `⬇️ DOWN: ${downPositions.length} pos | $${downSize.toFixed(2)} | P&L: ${downPnL >= 0 ? '+' : ''}$${downPnL.toFixed(2)}\n`;
-  }
 
   return text;
 }
 
 export function formatClosedOrders(orders: ClosedOrder[]): string {
-  if (orders.length === 0) {
-    return '💼 No closed orders';
-  }
+  if (!orders || orders.length === 0) return '📝 *No closed orders found.*';
 
-  const totalPnL = orders.reduce((sum, o) => sum + o.final_pnl, 0);
+  // Calculate totals incorporating fees since backend final_pnl excludes them
+  const totalPnL = orders.reduce((sum, o) => sum + (o.final_pnl - (o.fees ?? 0)), 0);
   const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
   const totalQty = orders.reduce((sum, o) => sum + o.qty, 0);
-  const profitable = orders.filter((o) => o.final_pnl > 0).length;
-  const winRate = orders.length > 0 ? (profitable / orders.length * 100).toFixed(1) : '0.0';
+  const profitable = orders.filter((o) => (o.final_pnl - (o.fees ?? 0)) > 0).length;
+  const winRate = orders.length > 0 
+    ? (profitable / orders.length * 100).toFixed(1) 
+    : '0.0';
 
-  let text = `📊 *TRADE HISTORY*\n`;
-  text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  text += `*Portfolio Summary:*\n`;
-  text += `├ Total Trades: ${orders.length}\n`;
+  let text = `📊 *Closed Orders Summary*\n\n`;
   text += `├ Win Rate: ${winRate}%\n`;
   text += `├ Total Volume: $${totalAmount.toFixed(2)}\n`;
   text += `├ Total Qty: ${totalQty.toFixed(0)}\n`;
-  text += `└ Total P&L: ${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)} ${totalPnL >= 0 ? '🟢' : '🔴'}\n\n`;
+  text += `└ Realized P&L: ${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)} ${totalPnL >= 0 ? '🟢' : '🔴'}\n\n`;
 
-  text += `*Recent 10:*\n\n`;
+  text += `*Recent 5:*\n\n`;
 
-  [...orders].reverse().slice(0, 10).forEach((order) => {
-    const direction = order.side === 'buy' ? 'Up' : 'Down';
+  orders.slice(-5).forEach((order) => {
+    const direction = order.side.toUpperCase() === 'UP' ? 'Up' : 'Down';
     const date = new Date(order.timestamp * 1000).toLocaleString();
     const res = order.resolution || 'Pending';
     const resEmoji = res === 'YES' ? '✅' : res === 'NO' ? '❌' : '⏳';
@@ -154,11 +116,25 @@ export function formatClosedOrders(orders: ClosedOrder[]): string {
 }
 
 export function formatDashboard(data: DashboardData): string {
-  const totalPnL = data.closed_orders.reduce((sum, o) => sum + o.final_pnl, 0);
-  const profitable = data.closed_orders.filter((o) => o.final_pnl > 0).length;
+  // Incorporate fees into realized PNL since the backend's final_pnl does not include them
+  const totalPnL = data.closed_orders.reduce((sum, o) => sum + (o.final_pnl - (o.fees ?? 0)), 0);
+  const profitable = data.closed_orders.filter((o) => (o.final_pnl - (o.fees ?? 0)) > 0).length;
   const winRate = data.closed_orders.length > 0
     ? (profitable / data.closed_orders.length * 100).toFixed(1)
     : '0.0';
+
+  let openPnL = 0;
+  data.positions.forEach(pos => {
+    if (pos.pnl !== undefined) {
+      openPnL += pos.pnl;
+    } else {
+      const currentPrice = pos.direction.toUpperCase() === 'UP' ? data.market.yes_price : data.market.no_price;
+      const qty = pos.qty ?? (pos.size / pos.price);
+      openPnL += (currentPrice - pos.price) * qty;
+    }
+  });
+
+  const combinedPnL = totalPnL + openPnL;
 
   let text = `🚀 *Polymarket Bot Dashboard*\n\n`;
 
@@ -172,7 +148,12 @@ export function formatDashboard(data: DashboardData): string {
   text += `*Positions:* ${data.positions.length} open\n`;
   text += `*Trades:* ${data.trades.length} recent\n`;
   text += `*Closed:* ${data.closed_orders.length} total\n`;
-  text += `*Win Rate:* ${winRate}% | *Total P&L:* $${totalPnL.toFixed(2)}\n\n`;
+  text += `*Win Rate:* ${winRate}%\n`;
+  text += `*Realized P&L:* ${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}\n`;
+  if (data.positions.length > 0) {
+    text += `*Unrealized P&L:* ${openPnL >= 0 ? '+' : ''}$${openPnL.toFixed(2)}\n`;
+  }
+  text += `*Total Net P&L:* ${combinedPnL >= 0 ? '+' : ''}$${combinedPnL.toFixed(2)}\n\n`;
 
   if (data.trades.length > 0) {
     const latest = data.trades[0]!;

@@ -73,7 +73,10 @@ const CALLBACKS: Record<string, CallbackConfig> = {
     errorMessage: 'Error fetching positions',
   },
   history: {
-    fetch: (api) => api.getClosedOrders(),
+    fetch: async (api) => {
+      const data = await api.getDashboard();
+      return { closed_orders: data.closed_orders };
+    },
     format: (data) => formatClosedOrders((data as { closed_orders: Parameters<typeof formatClosedOrders>[0] }).closed_orders),
     keyboard: () => detailKeyboard('history'),
     successMessage: 'History updated!',
